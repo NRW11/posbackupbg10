@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เครื่องสำรอง POS BG10</title>
+<style>
+  :root {
+    --primary: #0FF0FC;
+    --primary-dark: #0A0E1A;
+    --accent: #FF2EF7;
+    --accent2: #7B2FFF;
+    --bg: #05070D;
+    --card: #0D1120;
+    --green: #39FF88;
+    --green-bg: rgba(57,255,136,0.12);
+    --gray: #8A93B8;
+    --gray-bg: rgba(138,147,184,0.14);
+    --border: rgba(15,240,252,0.25);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Tahoma", "Sarabun", sans-serif;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(123,47,255,0.18), transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(15,240,252,0.12), transparent 40%),
+      var(--bg);
+    color: #E7ECFF;
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(120deg, #0A0E1A, #12102A);
+    color: #fff;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 0 18px rgba(15,240,252,0.25);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(15,240,252,0.7), 0 0 18px rgba(255,46,247,0.35);
+    letter-spacing: 0.3px;
+  }
+  header p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--gray);
+  }
+  nav {
+    display: flex;
+    overflow-x: auto;
+    background: #080B14;
+    border-bottom: 1px solid var(--border);
+  }
+  nav button {
+    flex: 0 0 auto;
+    background: none;
+    border: none;
+    color: var(--gray);
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: color .15s;
+  }
+  nav button.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    text-shadow: 0 0 10px rgba(15,240,252,0.9);
+  }
+  main {
+    padding: 16px;
+    max-width: 720px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .cat-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: box-shadow .15s, transform .15s;
+  }
+  .cat-card:active { transform: scale(0.98); }
+  .cat-card:hover {
+    box-shadow: 0 0 16px rgba(15,240,252,0.25);
+    border-color: var(--primary);
+  }
+  .cat-card h3 {
+    margin: 0 0 8px;
+    color: var(--primary);
+    font-size: 15px;
+    text-shadow: 0 0 6px rgba(15,240,252,0.5);
+  }
+  .cat-card .total {
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255,46,247,0.5);
+  }
+  .cat-card .badges {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11px;
+  }
+  .badge {
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .badge.green { background: var(--green-bg); color: var(--green); border-color: rgba(57,255,136,0.4); }
+  .badge.gray { background: var(--gray-bg); color: var(--gray); border-color: rgba(138,147,184,0.3); }
+  .badge.orange { background: rgba(255,159,28,0.14); color: #FF9F1C; border-color: rgba(255,159,28,0.4); }
+
+  .section-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 4px 0 12px;
+  }
+  .section-title h2 {
+    font-size: 16px;
+    margin: 0;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(15,240,252,0.4);
+  }
+  .btn {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(255,46,247,0.45);
+  }
+  .btn.secondary {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 10px rgba(15,240,252,0.25);
+  }
+  .btn.small { padding: 6px 10px; font-size: 12px; }
+
+  .device-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: box-shadow .15s, border-color .15s, transform .15s;
+  }
+  .device-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 14px rgba(15,240,252,0.2);
+  }
+  .device-card:active { transform: scale(0.99); }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { font-size: 12.5px; color: var(--gray); flex-shrink: 0; }
+  .detail-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #E7ECFF;
+    text-align: right;
+  }
+  .device-card .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .device-card h4 { margin: 0; font-size: 14.5px; color: #fff; }
+  .owner-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 8px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .owner-label { font-size: 11.5px; color: var(--gray); }
+  .owner-name {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--primary);
+    text-shadow: 0 0 8px rgba(15,240,252,0.55);
+    text-align: right;
+  }
+  .device-card .meta { font-size: 12.5px; color: var(--gray); margin-top: 4px; line-height: 1.5; }
+  .device-card .meta b { color: #C6D0F5; }
+
+  .empty {
+    text-align: center;
+    color: var(--gray);
+    padding: 40px 10px;
+    font-size: 13px;
+  }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(2px);
+    z-index: 50;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: #0B0F1C;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    box-shadow: 0 -4px 30px rgba(15,240,252,0.15);
+  }
+  .modal h3 {
+    margin: 0 0 14px;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255,46,247,0.4);
+  }
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--gray);
+    margin-bottom: 4px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 9px 10px;
+    background: #05070D;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #E7ECFF;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px rgba(15,240,252,0.35);
+  }
+  .field textarea { resize: vertical; min-height: 50px; }
+  .inline-add { display: flex; gap: 6px; }
+  .inline-add select { flex: 1; }
+  .searchable { position: relative; }
+  .searchable input[type="text"] { width: 100%; }
+  .search-list {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #05070D;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 190px;
+    overflow-y: auto;
+    z-index: 60;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.6), 0 0 14px rgba(15,240,252,0.15);
+  }
+  .search-list.open { display: block; }
+  .search-list .item {
+    padding: 9px 12px;
+    font-size: 13.5px;
+    cursor: pointer;
+    color: #E7ECFF;
+  }
+  .search-list .item:hover {
+    background: rgba(15,240,252,0.12);
+    color: var(--primary);
+  }
+  .search-list .empty-item {
+    padding: 9px 12px;
+    font-size: 12.5px;
+    color: var(--gray);
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    position: sticky;
+    bottom: 0;
+    background: #0B0F1C;
+    padding-top: 8px;
+  }
+  .modal-actions .btn { flex: 1; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0B0F1C;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity .25s;
+    z-index: 100;
+    box-shadow: 0 0 16px rgba(15,240,252,0.4);
+  }
+  .toast.show { opacity: 1; }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(15,240,252,0.25);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--gray);
+    padding: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>เครื่องสำรอง POS BG10</h1>
+  <p>ระบบติดตามอุปกรณ์สำรอง — PDA / UPS / COM / AP / SCANNER</p>
+</header>
+
+<nav id="nav"></nav>
+
+<main id="main">
+  <div class="empty"><span class="spinner" style="border-top-color:var(--primary); border-color:rgba(15,240,252,0.15)"></span> กำลังโหลดข้อมูล...</div>
+</main>
+
+<div class="overlay" id="formOverlay">
+  <div class="modal">
+    <h3><span id="formTitleVerb">เพิ่มเครื่องสำรอง</span> <span id="formCategoryLabel"></span></h3>
+    <form id="equipmentForm">
+      <div class="field">
+        <label>ชื่ออุปกรณ์ *</label>
+        <input type="text" id="f_deviceName" required>
+      </div>
+      <div class="field">
+        <label>รุ่น</label>
+        <input type="text" id="f_model">
+      </div>
+      <div class="field">
+        <label>S/N</label>
+        <input type="text" id="f_serialNumber">
+      </div>
+      <div class="field">
+        <label>รหัสทรัพย์สิน</label>
+        <input type="text" id="f_assetCode">
+      </div>
+      <div class="field">
+        <label>สถานะเครื่อง</label>
+        <select id="f_status">
+          <option value="สำรอง">สำรอง</option>
+          <option value="ไม่สำรอง">ไม่สำรอง</option>
+          <option value="ส่งซ่อม">ส่งซ่อม</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>เจ้าของเครื่อง</label>
+        <div class="inline-add">
+          <div class="searchable" style="flex:1">
+            <input type="text" id="f_owner_input" placeholder="พิมพ์เพื่อค้นหาชื่อช่าง..." autocomplete="off">
+            <input type="hidden" id="f_owner">
+            <div class="search-list" id="f_owner_list"></div>
+          </div>
+          <button type="button" class="btn small secondary" onclick="promptAddTech('f_owner')">+ ช่างใหม่</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>สาขาที่นำไปสำรอง</label>
+        <div class="inline-add">
+          <div class="searchable" style="flex:1">
+            <input type="text" id="f_branch_input" placeholder="พิมพ์เพื่อค้นหาสาขา..." autocomplete="off">
+            <input type="hidden" id="f_branch">
+            <div class="search-list" id="f_branch_list"></div>
+          </div>
+          <button type="button" class="btn small secondary" onclick="promptAddBranch()">+ สาขาใหม่</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>ผู้นำไปสำรอง</label>
+        <div class="inline-add">
+          <div class="searchable" style="flex:1">
+            <input type="text" id="f_deployedBy_input" placeholder="พิมพ์เพื่อค้นหาชื่อช่าง..." autocomplete="off">
+            <input type="hidden" id="f_deployedBy">
+            <div class="search-list" id="f_deployedBy_list"></div>
+          </div>
+          <button type="button" class="btn small secondary" onclick="promptAddTech('f_deployedBy')">+ ช่างใหม่</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>วันที่นำไปสำรอง</label>
+        <div style="display:flex;gap:6px;">
+          <input type="date" id="f_deployedDate" style="flex:1">
+          <button type="button" class="btn small secondary" onclick="document.getElementById('f_deployedDate').value=''">ล้างวันที่</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>หลังจากรับกลับเครื่องอยู่ที่ไหน</label>
+        <input type="text" id="f_returnedLocation" placeholder="เช่น คลังอุปกรณ์ IT ชั้น 2">
+      </div>
+      <div class="field">
+        <label>หมายเหตุ</label>
+        <textarea id="f_note"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" onclick="closeForm()">ยกเลิก</button>
+        <button type="submit" class="btn" id="submitBtn">บันทึก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="overlay" id="detailOverlay">
+  <div class="modal">
+    <h3 id="detailTitle"></h3>
+    <div id="detailBody"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn secondary" onclick="closeDetail()">ปิด</button>
+      <button type="button" class="btn" id="detailEditBtn">อัพเดทสถานะเครื่อง</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>by Nirawit Chansuwan</footer>
+
+<script>
+/* ================================================================
+   ตั้งค่าตรงนี้ที่เดียว: วางลิงก์เว็บแอป Apps Script (ลงท้ายด้วย /exec)
+   หาได้จาก Deploy > Manage deployments ใน Apps Script
+================================================================ */
+var API_URL = 'https://script.google.com/macros/s/AKfycbyeEUlkgqP0KqM2JHwzv_EBi_sBrb5sds8LGSIrlJS3FG33Tr0CuCJc7th1zQB6pNw/exec';
+
+function callApi(action, params) {
+  if (!API_URL || API_URL.indexOf('PASTE_YOUR') === 0) {
+    return Promise.reject(new Error('ยังไม่ได้ตั้งค่า API_URL ในไฟล์ index.html (ดูคอมเมนต์ด้านบนของ <script>)'));
+  }
+  var url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  Object.keys(params || {}).forEach(function (k) {
+    if (params[k] !== undefined && params[k] !== null) url.searchParams.set(k, params[k]);
+  });
+  return fetch(url.toString())
+    .then(function (res) { return res.json(); })
+    .then(function (json) {
+      if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+      return json.data;
+    });
+}
+
+var CATEGORIES = ['ภาพรวม', 'PDA', 'UPS', 'COM', 'AP', 'SCANNER'];
+var currentTab = 'ภาพรวม';
+var technicians = [];
+var branches = [];
+var currentRows = [];
+var ownerField, branchField, deployedByField;
+
+function bindSearchable(prefix, dataGetter, allowEmpty) {
+  var input = document.getElementById(prefix + '_input');
+  var hidden = document.getElementById(prefix);
+  var list = document.getElementById(prefix + '_list');
+
+  function renderList(filterText) {
+    var data = dataGetter();
+    var f = (filterText || '').trim().toLowerCase();
+    var filtered = f ? data.filter(function (v) { return v.toLowerCase().indexOf(f) !== -1; }) : data;
+    list.innerHTML = '';
+    if (allowEmpty) {
+      var clearItem = document.createElement('div');
+      clearItem.className = 'item';
+      clearItem.textContent = '-- ไม่ระบุ --';
+      clearItem.onmousedown = function (e) { e.preventDefault(); selectValue(''); };
+      list.appendChild(clearItem);
+    }
+    if (filtered.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'empty-item';
+      empty.textContent = 'ไม่พบรายการที่ตรงกัน';
+      list.appendChild(empty);
+    } else {
+      filtered.forEach(function (v) {
+        var item = document.createElement('div');
+        item.className = 'item';
+        item.textContent = v;
+        item.onmousedown = function (e) { e.preventDefault(); selectValue(v); };
+        list.appendChild(item);
+      });
+    }
+    list.classList.add('open');
+  }
+
+  function selectValue(v) {
+    hidden.value = v;
+    input.value = v;
+    list.classList.remove('open');
+  }
+
+  input.addEventListener('focus', function () { renderList(input.value); });
+  input.addEventListener('input', function () { hidden.value = ''; renderList(input.value); });
+  input.addEventListener('blur', function () { setTimeout(function () { list.classList.remove('open'); }, 150); });
+
+  return { setValue: selectValue };
+}
+
+function init() {
+  renderNav();
+  loadOverview();
+  ownerField = bindSearchable('f_owner', function () { return technicians; }, false);
+  deployedByField = bindSearchable('f_deployedBy', function () { return technicians; }, false);
+  branchField = bindSearchable('f_branch', function () { return branches; }, true);
+  callApi('getTechnicians').then(function (list) { technicians = list; }).catch(showError);
+  callApi('getBranches').then(function (list) { branches = list; }).catch(showError);
+}
+
+function renderNav() {
+  var nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  CATEGORIES.forEach(function (cat) {
+    var b = document.createElement('button');
+    b.textContent = cat;
+    b.className = cat === currentTab ? 'active' : '';
+    b.onclick = function () { switchTab(cat); };
+    nav.appendChild(b);
+  });
+}
+
+function switchTab(cat) {
+  currentTab = cat;
+  renderNav();
+  if (cat === 'ภาพรวม') loadOverview();
+  else loadCategory(cat);
+}
+
+function loadOverview() {
+  setLoading();
+  callApi('getOverviewData').then(renderOverview).catch(showError);
+}
+
+function renderOverview(data) {
+  var main = document.getElementById('main');
+  var html = '<div class="section-title"><h2>ภาพรวมเครื่องสำรองทั้งหมด (' + data.totalDevices + ' เครื่อง)</h2></div><div class="grid">';
+  data.categories.forEach(function (cat) {
+    var s = data.summary[cat];
+    html += '<div class="cat-card" onclick="switchTab(\'' + cat + '\')">' +
+      '<h3>' + cat + '</h3>' +
+      '<div class="total">' + s.total + '</div>' +
+      '<div class="badges">' +
+        '<span class="badge green">สำรอง ' + s.active + '</span>' +
+        '<span class="badge orange">ส่งซ่อม ' + s.repair + '</span>' +
+        '<span class="badge gray">ไม่สำรอง ' + s.inactive + '</span>' +
+      '</div></div>';
+  });
+  html += '</div>';
+  main.innerHTML = html;
+}
+
+function loadCategory(cat) {
+  setLoading();
+  callApi('getEquipmentByCategory', { category: cat }).then(function (rows) { renderCategory(cat, rows); }).catch(showError);
+}
+
+function renderCategory(cat, rows) {
+  currentRows = rows;
+  var main = document.getElementById('main');
+  var html = '<div class="section-title"><h2>' + cat + ' (' + rows.length + ')</h2>' +
+    '<button class="btn" onclick="openForm(\'' + cat + '\')">+ เพิ่มเครื่องสำรอง</button></div>';
+  if (rows.length === 0) {
+    html += '<div class="empty">ยังไม่มีเครื่องในหมวดนี้</div>';
+  } else {
+    rows.forEach(function (r, idx) {
+      var statusBadge = r['สถานะเครื่อง'] === 'สำรอง'
+        ? '<span class="badge green">สำรอง</span>'
+        : r['สถานะเครื่อง'] === 'ส่งซ่อม'
+        ? '<span class="badge orange">ส่งซ่อม</span>'
+        : '<span class="badge gray">ไม่สำรอง</span>';
+      html += '<div class="device-card" onclick="showDetail(' + idx + ')">' +
+        '<div class="top-row"><h4>' + esc(r['ชื่ออุปกรณ์']) + '</h4>' +
+          '<div style="display:flex;gap:6px;align-items:center;flex-shrink:0">' + statusBadge +
+          '<button class="btn small secondary" onclick="event.stopPropagation(); editDevice(' + idx + ')">อัพเดทสถานะเครื่อง</button></div></div>' +
+        '<div class="owner-row"><span class="owner-label">เจ้าของเครื่อง</span><span class="owner-name">' + esc(r['เจ้าของเครื่อง'] || '-') + '</span></div>' +
+        '<div class="meta">' +
+          '<b>รหัส:</b> ' + esc(r['รหัสรายการ']) + ' · <b>รุ่น:</b> ' + esc(r['รุ่น'] || '-') + '<br>' +
+          '<b>S/N:</b> ' + esc(r['S/N'] || '-') + ' · <b>รหัสทรัพย์สิน:</b> ' + esc(r['รหัสทรัพย์สิน'] || '-') + '<br>' +
+          (r['สาขาที่นำไปสำรอง'] ? '<b>สาขาที่นำไปสำรอง:</b> ' + esc(r['สาขาที่นำไปสำรอง']) + ' (โดย ' + esc(r['ผู้นำไปสำรอง'] || '-') + ')<br>' : '') +
+          (r['วันที่นำไปสำรอง'] ? '<b>วันที่นำไปสำรอง:</b> ' + esc(r['วันที่นำไปสำรอง']) + '<br>' : '') +
+          (r['หลังจากรับกลับเครื่องอยู่ที่ไหน'] ? '<b>ตำแหน่งปัจจุบัน:</b> ' + esc(r['หลังจากรับกลับเครื่องอยู่ที่ไหน']) + '<br>' : '') +
+          (r['หมายเหตุ'] ? '<b>หมายเหตุ:</b> ' + esc(r['หมายเหตุ']) : '') +
+        '</div></div>';
+    });
+  }
+  main.innerHTML = html;
+}
+
+function setLoading() {
+  document.getElementById('main').innerHTML = '<div class="empty"><span class="spinner" style="border-top-color:var(--primary); border-color:rgba(15,240,252,0.15)"></span> กำลังโหลดข้อมูล...</div>';
+}
+
+function showError(err) {
+  document.getElementById('main').innerHTML = '<div class="empty">เกิดข้อผิดพลาด: ' + esc(err.message || err) + '</div>';
+}
+
+function esc(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+/* ---- Form ---- */
+function openForm(cat, existingRecord) {
+  var form = document.getElementById('equipmentForm');
+  document.getElementById('formCategoryLabel').textContent = '(' + cat + ')';
+  form.dataset.category = cat;
+  form.reset();
+  ownerField.setValue('');
+  deployedByField.setValue('');
+  branchField.setValue('');
+
+  if (existingRecord) {
+    form.dataset.editId = existingRecord['รหัสรายการ'];
+    document.getElementById('formTitleVerb').textContent = 'แก้ไขเครื่องสำรอง';
+    document.getElementById('submitBtn').textContent = 'บันทึกการแก้ไข';
+    document.getElementById('f_deviceName').value = existingRecord['ชื่ออุปกรณ์'] || '';
+    document.getElementById('f_model').value = existingRecord['รุ่น'] || '';
+    document.getElementById('f_serialNumber').value = existingRecord['S/N'] || '';
+    document.getElementById('f_assetCode').value = existingRecord['รหัสทรัพย์สิน'] || '';
+    document.getElementById('f_status').value = existingRecord['สถานะเครื่อง'] || 'สำรอง';
+    ownerField.setValue(existingRecord['เจ้าของเครื่อง'] || '');
+    branchField.setValue(existingRecord['สาขาที่นำไปสำรอง'] || '');
+    deployedByField.setValue(existingRecord['ผู้นำไปสำรอง'] || '');
+    document.getElementById('f_deployedDate').value = toInputDate(existingRecord['วันที่นำไปสำรอง']);
+    document.getElementById('f_returnedLocation').value = existingRecord['หลังจากรับกลับเครื่องอยู่ที่ไหน'] || '';
+    document.getElementById('f_note').value = existingRecord['หมายเหตุ'] || '';
+  } else {
+    delete form.dataset.editId;
+    document.getElementById('formTitleVerb').textContent = 'เพิ่มเครื่องสำรอง';
+    document.getElementById('submitBtn').textContent = 'บันทึก';
+  }
+  document.getElementById('formOverlay').classList.add('open');
+}
+
+function editDevice(idx) {
+  openForm(currentTab, currentRows[idx]);
+}
+
+function showDetail(idx) {
+  var r = currentRows[idx];
+  document.getElementById('detailTitle').textContent = r['ชื่ออุปกรณ์'] || 'รายละเอียดเครื่อง';
+
+  var fields = [
+    ['รหัสรายการ', r['รหัสรายการ']],
+    ['หมวดหมู่', r['หมวดหมู่']],
+    ['สถานะเครื่อง', r['สถานะเครื่อง']],
+    ['รุ่น', r['รุ่น']],
+    ['S/N', r['S/N']],
+    ['รหัสทรัพย์สิน', r['รหัสทรัพย์สิน']],
+    ['เจ้าของเครื่อง', r['เจ้าของเครื่อง']],
+    ['สาขาที่นำไปสำรอง', r['สาขาที่นำไปสำรอง']],
+    ['ผู้นำไปสำรอง', r['ผู้นำไปสำรอง']],
+    ['วันที่นำไปสำรอง', r['วันที่นำไปสำรอง']],
+    ['หลังจากรับกลับเครื่องอยู่ที่ไหน', r['หลังจากรับกลับเครื่องอยู่ที่ไหน']],
+    ['หมายเหตุ', r['หมายเหตุ']]
+  ];
+
+  var html = '';
+  fields.forEach(function (pair) {
+    html += '<div class="detail-row"><span class="detail-label">' + esc(pair[0]) + '</span>' +
+      '<span class="detail-value">' + esc(pair[1] || '-') + '</span></div>';
+  });
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('detailEditBtn').onclick = function () {
+    closeDetail();
+    editDevice(idx);
+  };
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+}
+
+function toInputDate(str) {
+  if (!str) return '';
+  var parts = String(str).split('/'); // dd/MM/yyyy -> yyyy-MM-dd
+  if (parts.length !== 3) return '';
+  return parts[2] + '-' + parts[1] + '-' + parts[0];
+}
+
+function closeForm() {
+  document.getElementById('formOverlay').classList.remove('open');
+}
+
+function promptAddTech(targetFieldPrefix) {
+  var name = prompt('ชื่อช่างใหม่:');
+  if (!name) return;
+  callApi('addTechnician', { name: name }).then(function (addedName) {
+    technicians.push(addedName);
+    if (targetFieldPrefix === 'f_owner') ownerField.setValue(addedName);
+    else if (targetFieldPrefix === 'f_deployedBy') deployedByField.setValue(addedName);
+  }).catch(showError);
+}
+
+function promptAddBranch() {
+  var name = prompt('ชื่อสาขาใหม่:');
+  if (!name) return;
+  callApi('addBranch', { name: name, zone: '' }).then(function (addedName) {
+    branches.push(addedName);
+    branchField.setValue(addedName);
+  }).catch(showError);
+}
+
+document.getElementById('equipmentForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var btn = document.getElementById('submitBtn');
+  var editId = this.dataset.editId;
+  var savedLabel = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  var form = {
+    category: this.dataset.category,
+    deviceName: document.getElementById('f_deviceName').value.trim(),
+    model: document.getElementById('f_model').value.trim(),
+    serialNumber: document.getElementById('f_serialNumber').value.trim(),
+    assetCode: document.getElementById('f_assetCode').value.trim(),
+    status: document.getElementById('f_status').value,
+    owner: document.getElementById('f_owner').value,
+    branch: document.getElementById('f_branch').value,
+    deployedBy: document.getElementById('f_deployedBy').value,
+    deployedDate: document.getElementById('f_deployedDate').value,
+    returnedLocation: document.getElementById('f_returnedLocation').value.trim(),
+    note: document.getElementById('f_note').value.trim()
+  };
+
+  function onSuccess() {
+    btn.disabled = false;
+    btn.textContent = savedLabel;
+    closeForm();
+    showToast(editId ? 'แก้ไขข้อมูลเรียบร้อย' : 'บันทึกเครื่องสำรองเรียบร้อย');
+    loadCategory(form.category);
+  }
+  function onError(err) {
+    btn.disabled = false;
+    btn.textContent = savedLabel;
+    showError(err);
+  }
+
+  if (editId) {
+    callApi('updateEquipment', { id: editId, payload: JSON.stringify(form) }).then(onSuccess).catch(onError);
+  } else {
+    callApi('addEquipment', { payload: JSON.stringify(form) }).then(onSuccess).catch(onError);
+  }
+});
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+
+init();
+</script>
+</body>
+</html>
