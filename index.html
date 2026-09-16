@@ -231,21 +231,21 @@
     background: rgba(0,0,0,0.65);
     backdrop-filter: blur(2px);
     z-index: 50;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
+    padding: 16px;
   }
   .overlay.open { display: flex; }
   .modal {
     background: #0B0F1C;
     width: 100%;
     max-width: 480px;
-    max-height: 90vh;
+    max-height: 85vh;
     overflow-y: auto;
-    border-radius: 16px 16px 0 0;
+    border-radius: 16px;
     padding: 20px;
     border: 1px solid var(--border);
-    border-bottom: none;
-    box-shadow: 0 -4px 30px rgba(15,240,252,0.15);
+    box-shadow: 0 0 30px rgba(15,240,252,0.2);
   }
   .modal h3 {
     margin: 0 0 14px;
