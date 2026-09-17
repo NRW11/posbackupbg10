@@ -496,6 +496,19 @@
   </div>
 </div>
 
+<div class="overlay" id="vendingBranchPickerOverlay">
+  <div class="modal">
+    <h3>เลือกจากสาขาที่มีอยู่</h3>
+    <div class="field">
+      <input type="text" id="vendingBranchPickerInput" placeholder="พิมพ์เพื่อค้นหาสาขา..." autocomplete="off">
+    </div>
+    <div id="vendingBranchPickerList" class="search-list" style="position:static;display:block;max-height:280px;margin-top:10px;"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn secondary" onclick="closeVendingBranchPicker()">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <footer>by Nirawit Chansuwan</footer>
@@ -505,7 +518,7 @@
    ตั้งค่าตรงนี้ที่เดียว: วางลิงก์เว็บแอป Apps Script (ลงท้ายด้วย /exec)
    หาได้จาก Deploy > Manage deployments ใน Apps Script
 ================================================================ */
-var API_URL = 'https://script.google.com/macros/s/AKfycbxC0FL8bzhg9MoBYJQKS-hUHG6PW7taQXvzQm6LrnnTKJNThPt5DcT5El3tOECfEME/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbyeEUlkgqP0KqM2JHwzv_EBi_sBrb5sds8LGSIrlJS3FG33Tr0CuCJc7th1zQB6pNw/exec';
 
 function callApi(action, params) {
   if (!API_URL || API_URL.indexOf('PASTE_YOUR') === 0) {
@@ -799,7 +812,10 @@ function renderVendingBranches(list) {
   currentVendingBranchList = list;
   var main = document.getElementById('main');
   var html = '<div class="section-title"><h2>แอนตี้เวด Vending — เลือกสาขา</h2>' +
-    '<button class="btn" onclick="promptAddVendingBranch()">+ เพิ่มสาขา</button></div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn small secondary" onclick="openVendingBranchPicker()">เลือกจากสาขาที่มีอยู่</button>' +
+    '<button class="btn" onclick="promptAddVendingBranch()">+ เพิ่มสาขา</button>' +
+    '</div></div>' +
     '<div class="field" style="margin-bottom:14px"><input type="text" id="vendingSearchInput" placeholder="ค้นหาสาขา..." autocomplete="off" oninput="renderVendingBranchGrid(this.value)"></div>' +
     '<div id="vendingBranchGrid"></div>';
   main.innerHTML = html;
@@ -846,6 +862,42 @@ function promptAddVendingBranch() {
     loadVendingMachines(addedName);
   }).catch(showError);
 }
+
+var currentVendingPickerFiltered = [];
+
+function openVendingBranchPicker() {
+  document.getElementById('vendingBranchPickerInput').value = '';
+  renderVendingBranchPickerList('');
+  document.getElementById('vendingBranchPickerOverlay').classList.add('open');
+}
+
+function closeVendingBranchPicker() {
+  document.getElementById('vendingBranchPickerOverlay').classList.remove('open');
+}
+
+function renderVendingBranchPickerList(query) {
+  var container = document.getElementById('vendingBranchPickerList');
+  var q = (query || '').trim().toLowerCase();
+  currentVendingPickerFiltered = branches.filter(function (b) { return !q || b.toLowerCase().indexOf(q) !== -1; });
+  if (currentVendingPickerFiltered.length === 0) {
+    container.innerHTML = '<div class="empty-item">ไม่พบสาขาที่ตรงกับคำค้นหา</div>';
+    return;
+  }
+  container.innerHTML = currentVendingPickerFiltered.map(function (b, idx) {
+    return '<div class="item" onclick="selectVendingBranchFromPicker(' + idx + ')">' + esc(b) + '</div>';
+  }).join('');
+}
+
+function selectVendingBranchFromPicker(idx) {
+  var branch = currentVendingPickerFiltered[idx];
+  closeVendingBranchPicker();
+  currentVendingBranch = branch;
+  loadVendingMachines(branch);
+}
+
+document.getElementById('vendingBranchPickerInput').addEventListener('input', function () {
+  renderVendingBranchPickerList(this.value);
+});
 
 function openVendingBranch(idx) {
   currentVendingBranch = currentVendingBranchList[idx].branch;
