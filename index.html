@@ -466,6 +466,36 @@
   </div>
 </div>
 
+<div class="overlay" id="vendingFormOverlay">
+  <div class="modal">
+    <h3><span id="vendingFormTitleVerb">เพิ่มตู้ Vending</span></h3>
+    <form id="vendingForm">
+      <div class="field">
+        <label>ตู้ที่</label>
+        <div style="display:flex;gap:8px;">
+          <select id="vf_machineType" style="flex:0 0 90px">
+            <option value="V">V</option>
+            <option value="P">P</option>
+          </select>
+          <input type="text" id="vf_machineNumber" placeholder="เลขตู้ เช่น 1" style="flex:1" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field">
+        <label>S/N</label>
+        <input type="text" id="vf_serialNumber">
+      </div>
+      <div class="field">
+        <label>รหัสแอนตี้เวด</label>
+        <input type="text" id="vf_antiVendCode">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" onclick="closeVendingForm()">ยกเลิก</button>
+        <button type="submit" class="btn" id="vendingSubmitBtn">บันทึก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <footer>by Nirawit Chansuwan</footer>
@@ -475,7 +505,7 @@
    ตั้งค่าตรงนี้ที่เดียว: วางลิงก์เว็บแอป Apps Script (ลงท้ายด้วย /exec)
    หาได้จาก Deploy > Manage deployments ใน Apps Script
 ================================================================ */
-var API_URL = 'https://script.google.com/macros/s/AKfycbxC0FL8bzhg9MoBYJQKS-hUHG6PW7taQXvzQm6LrnnTKJNThPt5DcT5El3tOECfEME/exec';
+var API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
 
 function callApi(action, params) {
   if (!API_URL || API_URL.indexOf('PASTE_YOUR') === 0) {
@@ -494,7 +524,7 @@ function callApi(action, params) {
     });
 }
 
-var CATEGORIES = ['ภาพรวม', 'PDA', 'UPS', 'COM', 'AP', 'SCANNER'];
+var CATEGORIES = ['ภาพรวม', 'PDA', 'UPS', 'COM', 'AP', 'SCANNER', 'Vending'];
 var currentTab = 'ภาพรวม';
 var technicians = [];
 var branches = [];
@@ -574,6 +604,7 @@ function switchTab(cat) {
   currentTab = cat;
   renderNav();
   if (cat === 'ภาพรวม') loadOverview();
+  else if (cat === 'Vending') loadVendingBranches();
   else loadCategory(cat);
 }
 
@@ -753,6 +784,163 @@ function promptAddBranch() {
     branchField.setValue(addedName);
   }).catch(showError);
 }
+
+/* ---- Vending (แอนตี้เวด) ---- */
+var currentVendingBranchList = [];
+var currentVendingBranch = null;
+var currentVendingRows = [];
+
+function loadVendingBranches() {
+  setLoading();
+  callApi('getVendingBranchSummary').then(renderVendingBranches).catch(showError);
+}
+
+function renderVendingBranches(list) {
+  currentVendingBranchList = list;
+  var main = document.getElementById('main');
+  var html = '<div class="section-title"><h2>แอนตี้เวด Vending — เลือกสาขา</h2>' +
+    '<button class="btn" onclick="promptAddVendingBranch()">+ เพิ่มสาขา</button></div>' +
+    '<div class="field" style="margin-bottom:14px"><input type="text" id="vendingSearchInput" placeholder="ค้นหาสาขา..." autocomplete="off" oninput="renderVendingBranchGrid(this.value)"></div>' +
+    '<div id="vendingBranchGrid"></div>';
+  main.innerHTML = html;
+  renderVendingBranchGrid('');
+}
+
+function renderVendingBranchGrid(query) {
+  var container = document.getElementById('vendingBranchGrid');
+  if (!container) return;
+  var withData = currentVendingBranchList
+    .map(function (item, idx) { return { item: item, idx: idx }; })
+    .filter(function (x) { return x.item.count > 0; });
+
+  if (withData.length === 0) {
+    container.innerHTML = '<div class="empty">ยังไม่มีสาขาไหนเพิ่มข้อมูลตู้เลย กด "+ เพิ่มสาขา" ด้านบนเพื่อเริ่มเพิ่มตู้ให้สาขาแรก</div>';
+    return;
+  }
+  var q = (query || '').trim().toLowerCase();
+  var filtered = withData.filter(function (x) { return !q || x.item.branch.toLowerCase().indexOf(q) !== -1; });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty">ไม่พบสาขาที่ตรงกับคำค้นหา</div>';
+    return;
+  }
+  var html = '<div class="grid">';
+  filtered.forEach(function (x) {
+    html += '<div class="cat-card" onclick="openVendingBranch(' + x.idx + ')">' +
+      '<h3>' + esc(x.item.branch) + '</h3>' +
+      '<div class="total">' + x.item.count + '</div>' +
+      '<div class="badges"><span class="badge gray">ตู้ที่บันทึกไว้</span></div>' +
+    '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function promptAddVendingBranch() {
+  var name = prompt('ชื่อสาขาใหม่:');
+  if (!name) return;
+  callApi('addBranch', { name: name, zone: '' }).then(function (addedName) {
+    branches.push(addedName);
+    currentVendingBranchList.push({ branch: addedName, count: 0 });
+    currentVendingBranch = addedName;
+    loadVendingMachines(addedName);
+  }).catch(showError);
+}
+
+function openVendingBranch(idx) {
+  currentVendingBranch = currentVendingBranchList[idx].branch;
+  loadVendingMachines(currentVendingBranch);
+}
+
+function loadVendingMachines(branch) {
+  setLoading();
+  callApi('getVendingByBranch', { branch: branch }).then(function (rows) { renderVendingMachines(branch, rows); }).catch(showError);
+}
+
+function renderVendingMachines(branch, rows) {
+  currentVendingRows = rows;
+  var main = document.getElementById('main');
+  var html = '<button class="btn small secondary" style="margin-bottom:12px" onclick="loadVendingBranches()">← กลับไปหน้าสาขา</button>' +
+    '<div class="section-title"><h2>' + esc(branch) + ' (' + rows.length + ')</h2>' +
+    '<button class="btn" onclick="openVendingForm()">+ เพิ่มตู้</button></div>';
+  if (rows.length === 0) {
+    html += '<div class="empty">ยังไม่มีตู้ในสาขานี้</div>';
+  } else {
+    rows.forEach(function (r, idx) {
+      html += '<div class="device-card">' +
+        '<div class="top-row"><h4>ตู้ ' + esc(r['ประเภทตู้']) + esc(r['เลขตู้']) + '</h4>' +
+        '<button class="btn small secondary" onclick="editVendingMachine(' + idx + ')">แก้ไข</button></div>' +
+        '<div class="meta">' +
+          '<b>รหัสรายการ:</b> ' + esc(r['รหัสรายการ']) + '<br>' +
+          '<b>S/N:</b> ' + esc(r['S/N'] || '-') + '<br>' +
+          '<b>รหัสแอนตี้เวด:</b> ' + esc(r['รหัสแอนตี้เวด'] || '-') +
+        '</div></div>';
+    });
+  }
+  main.innerHTML = html;
+}
+
+function openVendingForm(existingRecord) {
+  var form = document.getElementById('vendingForm');
+  form.reset();
+  if (existingRecord) {
+    form.dataset.editId = existingRecord['รหัสรายการ'];
+    document.getElementById('vendingFormTitleVerb').textContent = 'แก้ไขตู้ Vending';
+    document.getElementById('vendingSubmitBtn').textContent = 'บันทึกการแก้ไข';
+    document.getElementById('vf_machineType').value = existingRecord['ประเภทตู้'] || 'V';
+    document.getElementById('vf_machineNumber').value = existingRecord['เลขตู้'] || '';
+    document.getElementById('vf_serialNumber').value = existingRecord['S/N'] || '';
+    document.getElementById('vf_antiVendCode').value = existingRecord['รหัสแอนตี้เวด'] || '';
+  } else {
+    delete form.dataset.editId;
+    document.getElementById('vendingFormTitleVerb').textContent = 'เพิ่มตู้ Vending';
+    document.getElementById('vendingSubmitBtn').textContent = 'บันทึก';
+  }
+  document.getElementById('vendingFormOverlay').classList.add('open');
+}
+
+function editVendingMachine(idx) {
+  openVendingForm(currentVendingRows[idx]);
+}
+
+function closeVendingForm() {
+  document.getElementById('vendingFormOverlay').classList.remove('open');
+}
+
+document.getElementById('vendingForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var btn = document.getElementById('vendingSubmitBtn');
+  var editId = this.dataset.editId;
+  var savedLabel = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  var form = {
+    branch: currentVendingBranch,
+    machineType: document.getElementById('vf_machineType').value,
+    machineNumber: document.getElementById('vf_machineNumber').value.trim(),
+    serialNumber: document.getElementById('vf_serialNumber').value.trim(),
+    antiVendCode: document.getElementById('vf_antiVendCode').value.trim()
+  };
+
+  function onSuccess() {
+    btn.disabled = false;
+    btn.textContent = savedLabel;
+    closeVendingForm();
+    showToast(editId ? 'แก้ไขข้อมูลเรียบร้อย' : 'บันทึกตู้เรียบร้อย');
+    loadVendingMachines(currentVendingBranch);
+  }
+  function onError(err) {
+    btn.disabled = false;
+    btn.textContent = savedLabel;
+    showError(err);
+  }
+
+  if (editId) {
+    callApi('updateVendingMachine', { id: editId, payload: JSON.stringify(form) }).then(onSuccess).catch(onError);
+  } else {
+    callApi('addVendingMachine', { payload: JSON.stringify(form) }).then(onSuccess).catch(onError);
+  }
+});
 
 document.getElementById('equipmentForm').addEventListener('submit', function (e) {
   e.preventDefault();
