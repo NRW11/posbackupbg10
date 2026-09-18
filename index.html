@@ -159,6 +159,12 @@
     border: 1px solid var(--primary);
     box-shadow: 0 0 10px rgba(15,240,252,0.25);
   }
+  .btn.danger {
+    background: transparent;
+    color: #FF5C7A;
+    border: 1px solid #FF5C7A;
+    box-shadow: 0 0 10px rgba(255,92,122,0.25);
+  }
   .btn.small { padding: 6px 10px; font-size: 12px; }
 
   .device-card {
@@ -481,6 +487,14 @@
         </div>
       </div>
       <div class="field">
+        <label>รุ่นตู้</label>
+        <select id="vf_machineModel">
+          <option value="TCN">TCN</option>
+          <option value="FUJI">FUJI</option>
+          <option value="ตู้แพ็ค">ตู้แพ็ค</option>
+        </select>
+      </div>
+      <div class="field">
         <label>S/N</label>
         <input type="text" id="vf_serialNumber">
       </div>
@@ -488,7 +502,8 @@
         <label>รหัสแอนตี้เวด</label>
         <input type="text" id="vf_antiVendCode">
       </div>
-      <div class="modal-actions">
+      <div class="modal-actions" style="flex-wrap:wrap">
+        <button type="button" class="btn danger" id="vendingDeleteBtn" style="display:none;flex:1 1 100%;order:3;margin-top:4px" onclick="deleteVendingMachineConfirm()">ลบตู้นี้ทิ้ง</button>
         <button type="button" class="btn secondary" onclick="closeVendingForm()">ยกเลิก</button>
         <button type="submit" class="btn" id="vendingSubmitBtn">บันทึก</button>
       </div>
@@ -640,6 +655,13 @@ function renderOverview(data) {
         '<span class="badge gray">ไม่สำรอง ' + s.inactive + '</span>' +
       '</div></div>';
   });
+  if (data.vending) {
+    html += '<div class="cat-card" onclick="switchTab(\'Vending\')">' +
+      '<h3>Vending</h3>' +
+      '<div class="total">' + data.vending.totalMachines + '</div>' +
+      '<div class="badges"><span class="badge gray">' + data.vending.totalBranches + ' สาขา</span></div>' +
+    '</div>';
+  }
   html += '</div>';
   main.innerHTML = html;
 }
@@ -844,8 +866,7 @@ function renderVendingBranchGrid(query) {
   filtered.forEach(function (x) {
     html += '<div class="cat-card" onclick="openVendingBranch(' + x.idx + ')">' +
       '<h3>' + esc(x.item.branch) + '</h3>' +
-      '<div class="total">' + x.item.count + '</div>' +
-      '<div class="badges"><span class="badge gray">ตู้ที่บันทึกไว้</span></div>' +
+      '<div class="total" style="font-size:20px">จำนวน ' + x.item.count + ' ตู้</div>' +
     '</div>';
   });
   html += '</div>';
@@ -913,8 +934,9 @@ function renderVendingMachines(branch, rows) {
   currentVendingRows = rows;
   var main = document.getElementById('main');
   var html = '<button class="btn small secondary" style="margin-bottom:12px" onclick="loadVendingBranches()">← กลับไปหน้าสาขา</button>' +
-    '<div class="section-title"><h2>' + esc(branch) + ' (' + rows.length + ')</h2>' +
-    '<button class="btn" onclick="openVendingForm()">+ เพิ่มตู้</button></div>';
+    '<div class="section-title"><h2>' + esc(branch) + '</h2>' +
+    '<button class="btn" onclick="openVendingForm()">+ เพิ่มตู้</button></div>' +
+    '<div style="color:var(--gray);font-size:13px;margin:-6px 0 14px">ตู้ที่เพิ่มเข้ามาจำนวน ' + rows.length + ' ตู้</div>';
   if (rows.length === 0) {
     html += '<div class="empty">ยังไม่มีตู้ในสาขานี้</div>';
   } else {
@@ -923,7 +945,7 @@ function renderVendingMachines(branch, rows) {
         '<div class="top-row"><h4>ตู้ ' + esc(r['ประเภทตู้']) + esc(r['เลขตู้']) + '</h4>' +
         '<button class="btn small secondary" onclick="editVendingMachine(' + idx + ')">แก้ไข</button></div>' +
         '<div class="meta">' +
-          '<b>รหัสรายการ:</b> ' + esc(r['รหัสรายการ']) + '<br>' +
+          (r['รุ่นตู้'] ? '<b>รุ่นตู้:</b> ' + esc(r['รุ่นตู้']) + '<br>' : '') +
           '<b>S/N:</b> ' + esc(r['S/N'] || '-') + '<br>' +
           '<b>รหัสแอนตี้เวด:</b> ' + esc(r['รหัสแอนตี้เวด'] || '-') +
         '</div></div>';
@@ -941,14 +963,39 @@ function openVendingForm(existingRecord) {
     document.getElementById('vendingSubmitBtn').textContent = 'บันทึกการแก้ไข';
     document.getElementById('vf_machineType').value = existingRecord['ประเภทตู้'] || 'V';
     document.getElementById('vf_machineNumber').value = existingRecord['เลขตู้'] || '';
+    document.getElementById('vf_machineModel').value = existingRecord['รุ่นตู้'] || 'TCN';
     document.getElementById('vf_serialNumber').value = existingRecord['S/N'] || '';
     document.getElementById('vf_antiVendCode').value = existingRecord['รหัสแอนตี้เวด'] || '';
+    document.getElementById('vendingDeleteBtn').style.display = 'block';
   } else {
     delete form.dataset.editId;
     document.getElementById('vendingFormTitleVerb').textContent = 'เพิ่มตู้ Vending';
     document.getElementById('vendingSubmitBtn').textContent = 'บันทึก';
+    document.getElementById('vf_machineModel').value = 'TCN';
+    document.getElementById('vendingDeleteBtn').style.display = 'none';
   }
   document.getElementById('vendingFormOverlay').classList.add('open');
+}
+
+function deleteVendingMachineConfirm() {
+  var form = document.getElementById('vendingForm');
+  var editId = form.dataset.editId;
+  if (!editId) return;
+  if (!confirm('ยืนยันลบตู้นี้ทิ้ง? การลบไม่สามารถย้อนกลับได้')) return;
+  var btn = document.getElementById('vendingDeleteBtn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังลบ...';
+  callApi('deleteVendingMachine', { id: editId }).then(function () {
+    btn.disabled = false;
+    btn.textContent = 'ลบตู้นี้ทิ้ง';
+    closeVendingForm();
+    showToast('ลบตู้เรียบร้อย');
+    loadVendingMachines(currentVendingBranch);
+  }).catch(function (err) {
+    btn.disabled = false;
+    btn.textContent = 'ลบตู้นี้ทิ้ง';
+    showError(err);
+  });
 }
 
 function editVendingMachine(idx) {
@@ -970,6 +1017,7 @@ document.getElementById('vendingForm').addEventListener('submit', function (e) {
     branch: currentVendingBranch,
     machineType: document.getElementById('vf_machineType').value,
     machineNumber: document.getElementById('vf_machineNumber').value.trim(),
+    machineModel: document.getElementById('vf_machineModel').value,
     serialNumber: document.getElementById('vf_serialNumber').value.trim(),
     antiVendCode: document.getElementById('vf_antiVendCode').value.trim()
   };
